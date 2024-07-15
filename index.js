@@ -186,6 +186,6 @@ app.post('/invoke-lambda', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(400).send(err);
+    throw err;
   }
 });
