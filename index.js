@@ -20,7 +20,7 @@ app.use(express.json());
 const dbURI = process.env.DATABASE_URL;
 
 mongoose.connect(dbURI)
-  .then(() => app.listen(3000, () => console.log('Server is running on port 3000')))
+  .then(() => app.listen(process.env.PORT || 3000, () => console.log('Server is running on port 3000')))
   .catch(err => console.log(err));
 
 // Define a schema and model for a 'Post'
@@ -100,7 +100,12 @@ app.post('/upload', upload.single('file'), (req, res) => {
 // Create a new post
 app.post('/posts', async (req, res) => {
   try {
-    const post = new Post(req.body);
+    const data = {
+      title: req.body.title,
+      content: req.body.content,
+      author: req.body.author,
+    }
+    const post = new Post(data);
     const result = await post.save();
     res.send(result);
   } catch (err) {
