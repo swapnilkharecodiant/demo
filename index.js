@@ -164,3 +164,28 @@ app.delete('/posts/:id', async (req, res) => {
     res.status(500).send(err);
   }
 });
+
+/********************** invoke-lambda ******************************/
+
+// invoke-lambda using post api
+app.post('/invoke-lambda', async (req, res) => {
+  try {
+    const lambda = new AWS.Lambda();
+    const params = {
+      FunctionName: process.env.AWS_LAMBDA_FUNCTION,
+      Payload: JSON.stringify({
+        name: req.body.name,
+        price: req.body.price,
+      })
+    };
+    lambda.invoke(params, (err, data) => {
+      if (err) {
+        res.status(400).send(err);
+      } else {
+        res.send(JSON.parse(data.Payload));
+      }
+    });
+  } catch (err) {
+    res.status(400).send(err);
+  }
+});
