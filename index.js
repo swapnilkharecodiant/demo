@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import multerS3 from 'multer-s3-transform';
 import AWS from 'aws-sdk';
+import fs from 'fs';
 
 // Initialize the app
 const app = express();
@@ -186,6 +187,49 @@ app.post('/invoke-lambda', async (req, res) => {
       }
     });
   } catch (err) {
-    throw err;
+    res.status(400).send(err);
+  }
+});
+
+/************************* Generate CloudFront signed URL *****************************/
+
+const CloudFront = AWS.CloudFront;
+
+// Replace with your CloudFront distribution domain
+const cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
+
+// Replace with your CloudFront key pair ID
+const keyPairId = process.env.AWS_CLOUDFRONT_KEY_PAIR_ID;
+
+// Load the private key from a file
+const privateKey = fs.readFileSync('private_key.pem', 'utf8');
+
+// Generate a signed URL
+const generateSignedUrl = (resourcePath, expiresInSeconds) => {
+  const cloudFront = new CloudFront.Signer(keyPairId, privateKey);
+  const signedUrl = cloudFront.getSignedUrl({
+    url: `http://${cloudFrontDomain}/${resourcePath}`,
+    expires: Math.floor((Date.now() + expiresInSeconds * 1000) / 1000) // Expires in n seconds from now
+  });
+  return signedUrl;
+};
+
+// Get a post by ID
+app.get('/signed-url', async (req, res) => {
+  try {
+    if (req.query.path) {
+      const resourcePath = req.query.path
+      const expiresInSeconds = 3600;
+      const data = generateSignedUrl(resourcePath, expiresInSeconds);
+      if (data) {
+        res.send({statusCode: 200, signedUrl: data});
+      } else {
+        res.status(404).send('Request not found');
+      }
+    } else {
+      res.status(404).send('File path not found');
+    }
+  } catch (err) {
+    res.status(500).send(err);
   }
 });
